@@ -1,10 +1,12 @@
 package gdg.hongik.mission.service;
 
+import gdg.hongik.mission.dto.PurchaseRequest;
+import gdg.hongik.mission.dto.PurchaseResponse;
 import gdg.hongik.mission.entity.Product;
 import gdg.hongik.mission.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,6 +19,7 @@ import java.util.Map;
 public class ProductUserService {
     private final ProductRepository productRepository;
 
+    @Transactional
     // user의 비즈니스 로직
     // 1. 상품조회 2. 상품 구매
     public Product getProductByName(String name){
@@ -27,18 +30,18 @@ public class ProductUserService {
         return product;
     }
 
-    public Map<String,Object> purchaseProducts(List<Map<String, Object>> items){
+    @Transactional
+    public PurchaseResponse purchaseProducts(PurchaseRequest request){
         // 구매할 아이템 리스트(id, 수량)를 매개변수로 받기
 
         long totalPrice = 0;
         // 구매한 아이템들의 정보를 담을 리스트
-        List<Map<String, Object>> purchasedItems = new ArrayList<>();
+        List<PurchaseResponse.PurchasedItemResponse> purchasedItems = new ArrayList<>();
 
-        for (Map<String, Object> item : items) {
+        for (PurchaseRequest.ItemRequest item : request.items()) {
 
-            // 만약 JSON의 숫자가 integer로 인식될때를 대비한 명시적 형변환
-            Long productId = Long.valueOf(String.valueOf(item.get("productId")));
-            Long quantity = Long.valueOf(String.valueOf(item.get("quantity")));
+           Long productId = item.productId();
+           Long quantity = item.quantity();
 
             Product targetProduct = productRepository.findById(productId);
 
@@ -53,18 +56,14 @@ public class ProductUserService {
             totalPrice += itemTotalPrice;
 
             // 구매하는 아이템들의 정보(이름, 수량, 가격) 담기
-            Map<String, Object> purchasedItem = new HashMap<>();
-            purchasedItem.put("name", targetProduct.getName());
-            purchasedItem.put("quantity", quantity);
-            purchasedItem.put("itemTotalPrice", itemTotalPrice);
-            purchasedItems.add(purchasedItem);
+            purchasedItems.add(new PurchaseResponse.PurchasedItemResponse(
+                    targetProduct.getName(),
+                    item.quantity(),
+                    itemTotalPrice
+            ));
         }
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("totalPrice", totalPrice);
-        response.put("purchasedItems", purchasedItems);
-
-        return response;
+        return new PurchaseResponse(totalPrice, purchasedItems);
     }
 
 }

@@ -1,5 +1,6 @@
 package gdg.hongik.mission.controller;
 
+import gdg.hongik.mission.dto.*;
 import gdg.hongik.mission.entity.Product;
 import gdg.hongik.mission.service.ProductAdminService;
 import lombok.RequiredArgsConstructor;
@@ -19,25 +20,22 @@ public class ProductAdminController {
 
     // 상품 등록
     @PostMapping
-    public Product registerProduct(@RequestBody Product request){
-        return productAdminService.registerProduct(request);
-
+    public Product createProduct(@RequestBody ProductCreateRequest request){
+        return productAdminService.createProduct(request);
     }
 
     @PatchMapping("/{id}")
-    public Map<String,Object> addstock (
+    public ProductAddResponse addStock (
             @PathVariable Long id,
-            @RequestBody Map<String,Long> request) {
+            @RequestBody ProductAddRequest request) {
 
-        Long addQuantity = request.get("addQuantity");
-        return productAdminService.addstock(id, addQuantity);
+        Long addQuantity = request.addQuantity();
+        return productAdminService.addStock(id, addQuantity);
     }
 
     @DeleteMapping
-    public Map<String,Object> deleteProducts(@RequestBody Map<String, List<Long>> request ){
-        // JSON에서 삭제할 ID 리스트 꺼내기
-        List<Long> idsToRemove = request.get("productIds");
-        return productAdminService.deleteProducts(idsToRemove);
+    public ProductDeleteResponse deleteProducts(@RequestBody ProductDeleteRequest request ){
+        return productAdminService.deleteProducts(request);
     }
 
 

@@ -1,5 +1,7 @@
 package gdg.hongik.mission.controller;
 
+import gdg.hongik.mission.dto.PurchaseRequest;
+import gdg.hongik.mission.dto.PurchaseResponse;
 import gdg.hongik.mission.entity.Product;
 import gdg.hongik.mission.service.ProductUserService;
 import lombok.RequiredArgsConstructor;
@@ -25,8 +27,7 @@ public class ProductUserController {
 
 
     @PostMapping("/orders")
-    public Map<String, Object> purchaseProducts(@RequestBody Map<String, List<Map<String, Object>>> request) {
-        List<Map<String,Object>> items = request.get("items");
-        return productUserService.purchaseProducts(items);
+    public PurchaseResponse purchaseProducts(@RequestBody PurchaseRequest request) {
+        return productUserService.purchaseProducts(request);
     }
 }

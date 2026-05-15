@@ -1,9 +1,14 @@
 package gdg.hongik.mission.service;
 
+import gdg.hongik.mission.dto.ProductAddResponse;
+import gdg.hongik.mission.dto.ProductCreateRequest;
+import gdg.hongik.mission.dto.ProductDeleteRequest;
+import gdg.hongik.mission.dto.ProductDeleteResponse;
 import gdg.hongik.mission.entity.Product;
 import gdg.hongik.mission.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,24 +20,27 @@ import java.util.Map;
 public class ProductAdminService {
     private final ProductRepository productRepository;
 
-    public Product registerProduct(Product request){
-        Product exsitingProduct = productRepository.findByName(request.getName());
-        if(exsitingProduct != null){
+    @Transactional
+    public Product createProduct(ProductCreateRequest request){
+        Product existingProduct = productRepository.findByName(request.name());
+        if(existingProduct != null){
             throw new RuntimeException("동일한 이름의 상품이 존재합니다.");
         }
 
         //product 클래스는 기본생성자만 있으므로 setter로 product 생성
-        Product product = new Product();
-
-        product.setName(request.getName());
-        product.setPrice(request.getPrice());
-        product.setId(request.getId());
+        //product 클래스에 id 제외한 나머지 필드만을 갖는 생성자 추가
+        Product product = new Product(
+                request.name(),
+                request.stockQuantity(),
+                request.price()
+        );
 
         productRepository.save(product);
         return product;
     }
 
-    public Map<String, Object> addstock(Long id, Long addQuantity){
+    @Transactional
+    public ProductAddResponse addStock(Long id, Long addQuantity){
 
         Product targetProduct = productRepository.findById(id);
 
@@ -43,35 +51,32 @@ public class ProductAdminService {
         targetProduct.setStockQuantity(targetProduct.getStockQuantity() + addQuantity);
 
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("name", targetProduct.getName());
-        response.put("stockQuantity", targetProduct.getStockQuantity());
 
-        return response;
+        return new ProductAddResponse(targetProduct.getName(), targetProduct.getStockQuantity());
 
     }
 
-    public Map<String, Object> deleteProducts(List<Long> request){
+    @Transactional
+    public ProductDeleteResponse deleteProducts(ProductDeleteRequest request){
         // 리스트에 있는 id들 반복문으로 돌면서 아이템 삭제하기
-        for(Long id : request){
+        for(Long id : request.productIds()){
             productRepository.deleteById(id);
         }
-        // 삭제후 남은 상품들 목록 만들기
+        // 삭제후 남은 모든 상품 조회
         List<Product> allProducts  = productRepository.findAll();
 
-        List<Map<String, Object>> remainingList =new ArrayList<>();
+        // 삭제되고 남은 모든 상품 넣을 리스트
+        List<ProductDeleteResponse.RemainingProduct> remainingList =new ArrayList<>();
 
+        // 모든 상품 돌면서 리스트에 넣기
         for(Product p : allProducts){
-            Map<String, Object> productMap = new HashMap<>();
-            productMap.put("name", p.getName());
-            productMap.put("stockQuantity", p.getStockQuantity());
-            remainingList.add(productMap);
+            ProductDeleteResponse.RemainingProduct remainingProduct =
+                    new ProductDeleteResponse.RemainingProduct(p.getName(), p.getStockQuantity());
+            remainingList.add(remainingProduct);
         }
 
-        // 최종 응답 구조
-        Map<String,Object> response = new HashMap<>();
-        response.put("remainingProducts", remainingList);
+        return new ProductDeleteResponse(remainingList);
 
-        return response;
+
     }
 }
